@@ -94,6 +94,7 @@ gamma = 0.8
 total_reward=0
 while True:
 
+    print('Learning...')
     # print(x,y)
     action,reward = max_reward(current_state)
     total_reward += reward
@@ -101,5 +102,13 @@ while True:
     q[(current_state,action)]=gamma*reward
 
     new_state = next_state(current_state,action)
-    print(coordinate[current_state],coordinate[new_state])
-    break
+    x,y=coordinate[new_state]
+    if(board[x][y]=='$'):
+        print(total_reward)
+        q[(current_state,action)]=gamma*10
+        total_reward=0
+        # bring the bot at the start state
+        current_state=22
+        break
+
+    # print(coordinate[current_state],coordinate[new_state])
