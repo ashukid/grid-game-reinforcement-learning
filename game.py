@@ -1,8 +1,7 @@
 import random
 import time
 
-
-# board dimesions
+# board dimensions
 m=6
 n=6
 
@@ -21,6 +20,8 @@ board[4][1]='@'
 # -1 reward for any move
 # movement will be only up,down, left and right
 # 10 reward for reaching the final state
+
+# defining the state coordinate mapping
 state={}
 coordinate={}
 label=0
@@ -30,85 +31,143 @@ for i in range(m):
         coordinate[label]=(i,j)
         label+=1
 
-def is_safe(coordinate):
-    x,y=coordinate
-    # print(x,y)
-    if(x>=0 and y>=0 and x<n and y<m and board[x][y] != '#'):
-        return True
-    return False
-
-def left(x,y):
-    return (x-1,y)
-
-def right(x,y):
-    return (x+1,y)
-
-def up(x,y):
-    return (x,y-1)
-
-def down(x,y):
-    return (x,y+1)
-
-def next_state(s,action):
-    x,y=coordinate[s]
-    if(action=='L'):
-        newx,newy=left(x,y)
-        return state[(newx,newy)]
-    if(action=='R'):
-        newx,newy=right(x,y)
-        return state[(newx,newy)]
-    if(action=='U'):
-        newx,newy=up(x,y)
-        return state[(newx,newy)]
-    if(action=='D'):
-        newx,newy=down(x,y)
-        return state[(newx,newy)]
-    
-
-def max_reward(s):
-
-    x,y = coordinate[s]
-    r=[]
-    if(is_safe(left(x,y))):
-        r.append(['L',q[(s,'L')]])
-    if(is_safe(right(x,y))):
-        r.append(['R',q[(s,'R')]])
-    if(is_safe(up(x,y))):
-        r.append(['U',q[(s,'U')]])
-    if(is_safe(down(x,y))):
-        r.append(['D',q[(s,'D')]])
-    
-    random.shuffle(r)
-    return max(r,key=lambda x: x[1])
-
-
+# defining the q values for each state action pair
 q={}
 for i in range(len(state)):
-    q[(i,'L')]=0
-    q[(i,'R')]=0
-    q[(i,'U')]=0
-    q[(i,'D')]=0
+    q[i]=0
 
-current_state = 22
+# making all the states un-visited
+visited = {}
+for i in range(len(state)):
+    visited[i]=0
+
+# defining funtion
+def get_state(x,y):
+    return state[(x,y)]
+
+def get_coordinate(state):
+    return coordinate[state]
+
+def is_safe(x,y):
+    # print(x,y)
+    if(x>=0 and y>=0 and x<n and y<m and board[x][y] != '#'):
+        if(visited[get_state(x,y)] != 1):
+            return True
+    return False
+
+def left(s):
+    x,y = get_coordinate(s)
+    return get_state(x,y-1)
+
+def right(s):
+    x,y = get_coordinate(s)
+    return get_state(x,y+1)
+
+def up(s):
+    x,y = get_coordinate(s)
+    return get_state(x-1,y)
+
+def down(s):
+    x,y = get_coordinate(s)
+    return get_state(x+1,y)
+
+def next_state(s,action):
+    if(action=='L'):
+        return left(s)
+    if(action=='R'):
+        return right(s)
+    if(action=='U'):
+        return up(s)
+    if(action=='D'):
+        return down(s)
+    
+def max_reward(s):
+
+    r=[]
+    x,y=get_coordinate(s)
+    if(is_safe(x,y-1) and not visited[left(s)]):
+        r.append(['L',q[left(s)],left(s)])
+
+    if(is_safe(x,y+1) and not visited[right(s)]):
+        r.append(['R',q[right(s)],right(s)])
+    
+    if(is_safe(x-1,y) and not visited[up(s)]):
+        r.append(['U',q[up(s)],up(s)])
+
+    if(is_safe(x+1,y) and not visited[down(s)]):
+        r.append(['D',q[down(s)],down(s)])
+    if(r):
+        random.shuffle(r)
+        return max(r,key=lambda x: x[1])
+    
+    # empty move
+    return ('E',0,0)
+
+
+current_state = 25
+final_state = 16
+# second last state
+q[16]=10
+visited[current_state]=1
+print("Current coordiante : {}".format(coordinate[current_state]))
 gamma = 0.8
 total_reward=0
+r=0
+episode = 0
+epoch=0
 while True:
 
-    print('Learning...')
-    # print(x,y)
-    action,reward = max_reward(current_state)
-    total_reward += reward
-    # updating the q function for current state
-    q[(current_state,action)]=gamma*reward
+    epoch+=1
+    action,q_reward,next_state = max_reward(current_state)
+    if(action != 'E'):
+        q_new= (r+((gamma**epoch)*q_reward))
+        total_reward += q_new
+        # updating the q function for current state
+        q[current_state] = q_new
 
-    new_state = next_state(current_state,action)
-    x,y=coordinate[new_state]
-    if(board[x][y]=='$'):
-        print(total_reward)
-        q[(current_state,action)]=gamma*10
-        total_reward=0
+        # bot moves to next state
+        current_state = next_state
+        visited[next_state]=1
+        x,y=coordinate[next_state]
+
+
+        # print('intermediate cooridiante : {}'.format((x,y)))
+        if(board[x][y]=='$'):
+            # one episode complete
+            episode+=1
+            print("Final coordinate : {}".format((x,y)))
+            print("Total reward after episode {} : {}".format(episode,total_reward))
+            print(q)
+            # restarting the game
+            # bringing the bot at the start
+            # intitializing the rewards as 0
+            total_reward=0
+            current_state=25
+            epoch=0
+            for i in range(len(state)):
+                visited[i]=0
+            visited[current_state]=1
+
+            print("Restarting the game ....")
+            time.sleep(2)
+            print("Current coordiante : {}".format(coordinate[current_state]))
+
+
+    else:
+        # restarting the game
         # bring the bot at the start state
-        current_state=22
-        break
+        # intitializing the rewards as 0
+        total_reward=0
+        current_state=25
+        epoch=0
+        for i in range(len(state)):
+            visited[i]=0
+        visited[current_state]=1
 
-    # print(coordinate[current_state],coordinate[new_state])
+
+        print('No moves left, restarting the game ...')
+        time.sleep(2)
+        print("Current coordiante : {}".format(coordinate[current_state]))
+    
+
+    # <--------------------- end -------------------->
