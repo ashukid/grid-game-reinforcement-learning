@@ -47,6 +47,7 @@ class Game :
         final_state = self.board.final_state
         print("Start coordiante : {}".format(self.board.coordinate[current_state]))
         
+        # reinforcement learning
         while True:
             epoch+=1
             action,q_reward,next_state = self.max_reward(current_state)
@@ -65,6 +66,7 @@ class Game :
                     # one episode complete
                     episode+=1
                     print("Final coordinate : {}".format((x,y)))
+                    print(self.board.q)
                     print("Total reward after episode {} : {}".format(episode,total_reward))
 
                     # restarting the game
@@ -95,5 +97,3 @@ class Game :
                 print('\nNo moves left, restarting the game ...')
                 time.sleep(2)
                 print("Start coordiante : {}".format(self.board.coordinate[current_state]))
-
-
